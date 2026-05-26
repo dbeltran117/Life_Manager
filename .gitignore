@@ -1,0 +1,28 @@
+# ==========================
+# Backend (.NET / C#)
+# ==========================
+backend/bin/
+backend/obj/
+
+# Base de datos SQLite (¡CRÍTICO: No subir datos personales!)
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# ==========================
+# Frontend (React / Node)
+# ==========================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.eslintcache
+
+# ==========================
+# Entorno e IDE
+# ==========================
+.vscode/
+.DS_Store
+
+# Scripts de automatización personal
+*.bat
+*.vbs

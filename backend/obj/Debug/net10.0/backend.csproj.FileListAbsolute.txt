@@ -149,3 +149,4 @@ C:\Users\Diego\Documents\Proyecto_LifeManager\backend\obj\Debug\net10.0\refint\b
 C:\Users\Diego\Documents\Proyecto_LifeManager\backend\obj\Debug\net10.0\backend.pdb
 C:\Users\Diego\Documents\Proyecto_LifeManager\backend\obj\Debug\net10.0\backend.genruntimeconfig.cache
 C:\Users\Diego\Documents\Proyecto_LifeManager\backend\obj\Debug\net10.0\ref\backend.dll
+C:\Users\Diego\Documents\Proyecto_LifeManager\backend\obj\Debug\net10.0\backend.sourcelink.json
