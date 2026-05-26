@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aquí configuraremos el color de fondo oscuro más adelante */
+body {
+  background-color: #121212;
+  color: #ffffff;
+}
