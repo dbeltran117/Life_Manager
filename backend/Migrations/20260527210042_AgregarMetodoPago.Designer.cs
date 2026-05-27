@@ -11,14 +11,41 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260526000033_InicialCreate")]
-    partial class InicialCreate
+    [Migration("20260527210042_AgregarMetodoPago")]
+    partial class AgregarMetodoPago
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
+
+            modelBuilder.Entity("backend.Models.Gasto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Categoria")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Metodo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Monto")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Gastos");
+                });
 
             modelBuilder.Entity("backend.Models.Hobby", b =>
                 {
@@ -40,6 +67,26 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Hobbies");
+                });
+
+            modelBuilder.Entity("backend.Models.Ingreso", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Monto")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Origen")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Ingresos");
                 });
 
             modelBuilder.Entity("backend.Models.Recordatorio", b =>
@@ -70,31 +117,25 @@ namespace backend.Migrations
                     b.ToTable("Recordatorios");
                 });
 
-            modelBuilder.Entity("backend.Models.Transaccion", b =>
+            modelBuilder.Entity("backend.Models.TarjetaCredito", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Categoria")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("DeudaActual")
+                        .HasColumnType("TEXT");
 
-                    b.Property<string>("Descripcion")
+                    b.Property<decimal>("Limite")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Monto")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Tipo")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
 
-                    b.ToTable("Transacciones");
+                    b.ToTable("TarjetasCredito");
                 });
 #pragma warning restore 612, 618
         }

@@ -36,23 +36,62 @@ app.UseHttpsRedirection();
 // 2. APLICAR CORS (Debe ir antes de las rutas)
 app.UseCors("PermitirReact");
 
-// ==========================================
-// 3. NUESTROS ENDPOINTS (Las puertas de la API)
-// ==========================================
+// --- INGRESOS ---
+app.MapGet("/api/ingresos", async (AppDbContext db) =>
+    Results.Ok(await db.Ingresos.ToListAsync()));
 
-// Endpoint para LEER todas las transacciones (Tu historial de gastos/ingresos)
-app.MapGet("/api/transacciones", async (AppDbContext db) =>
+app.MapPost("/api/ingresos", async (Ingreso nuevoIngreso, AppDbContext db) =>
 {
-    var transacciones = await db.Transacciones.ToListAsync();
-    return Results.Ok(transacciones);
+    db.Ingresos.Add(nuevoIngreso);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/ingresos/{nuevoIngreso.Id}", nuevoIngreso);
 });
 
-// Endpoint para CREAR una nueva transacción (Tus limosnas o gastos hormiga)
-app.MapPost("/api/transacciones", async (Transaccion nuevaTransaccion, AppDbContext db) =>
+// --- TARJETAS DE CRÉDITO ---
+app.MapGet("/api/tarjetas", async (AppDbContext db) =>
+    Results.Ok(await db.TarjetasCredito.ToListAsync()));
+
+app.MapPost("/api/tarjetas", async (TarjetaCredito nuevaTarjeta, AppDbContext db) =>
 {
-    db.Transacciones.Add(nuevaTransaccion);
-    await db.SaveChangesAsync(); // Aquí se guarda en la base de datos mágicamente
-    return Results.Created($"/api/transacciones/{nuevaTransaccion.Id}", nuevaTransaccion);
+    db.TarjetasCredito.Add(nuevaTarjeta);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/tarjetas/{nuevaTarjeta.Id}", nuevaTarjeta);
 });
 
+// --- HOBBIES (RACHAS) ---
+app.MapGet("/api/hobbies", async (AppDbContext db) =>
+    Results.Ok(await db.Hobbies.ToListAsync()));
+
+app.MapPost("/api/hobbies", async (Hobby nuevoHobby, AppDbContext db) =>
+{
+    db.Hobbies.Add(nuevoHobby);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/hobbies/{nuevoHobby.Id}", nuevoHobby);
+});
+
+
+// --- GASTOS ---
+// ¡Te faltaba este endpoint para poder leer la lista de gastos!
+app.MapGet("/api/gastos", async (AppDbContext db) =>
+    Results.Ok(await db.Gastos.ToListAsync()));
+
+app.MapPost("/api/gastos", async (Gasto nuevoGasto, AppDbContext db) =>
+{
+    // 1. Guardamos el gasto en el historial
+    db.Gastos.Add(nuevoGasto);
+
+    // 2. MAGIA: Si usaste la tarjeta, buscamos tu tarjeta y le sumamos la deuda
+    if (nuevoGasto.Metodo == MetodoPago.TarjetaCredito)
+    {
+        var miTarjeta = await db.TarjetasCredito.FirstOrDefaultAsync();
+        if (miTarjeta != null)
+        {
+            miTarjeta.DeudaActual += nuevoGasto.Monto;
+        }
+    }
+
+    // 3. Guardamos todos los cambios al mismo tiempo
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/gastos/{nuevoGasto.Id}", nuevoGasto);
+});
 app.Run();

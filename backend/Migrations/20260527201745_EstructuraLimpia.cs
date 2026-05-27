@@ -6,11 +6,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InicialCreate : Migration
+    public partial class EstructuraLimpia : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Gastos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Monto = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Descripcion = table.Column<string>(type: "TEXT", nullable: false),
+                    Categoria = table.Column<int>(type: "INTEGER", nullable: false),
+                    Fecha = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Gastos", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Hobbies",
                 columns: table => new
@@ -24,6 +40,21 @@ namespace backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Hobbies", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Ingresos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Monto = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Origen = table.Column<int>(type: "INTEGER", nullable: false),
+                    Fecha = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Ingresos", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -42,36 +73,22 @@ namespace backend.Migrations
                 {
                     table.PrimaryKey("PK_Recordatorios", x => x.Id);
                 });
-
-            migrationBuilder.CreateTable(
-                name: "Transacciones",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Descripcion = table.Column<string>(type: "TEXT", nullable: false),
-                    Monto = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Tipo = table.Column<int>(type: "INTEGER", nullable: false),
-                    Categoria = table.Column<int>(type: "INTEGER", nullable: false),
-                    Fecha = table.Column<DateTime>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Transacciones", x => x.Id);
-                });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Gastos");
+
+            migrationBuilder.DropTable(
                 name: "Hobbies");
 
             migrationBuilder.DropTable(
-                name: "Recordatorios");
+                name: "Ingresos");
 
             migrationBuilder.DropTable(
-                name: "Transacciones");
+                name: "Recordatorios");
         }
     }
 }

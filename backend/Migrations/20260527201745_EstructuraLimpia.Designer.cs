@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -10,9 +11,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260527201745_EstructuraLimpia")]
+    partial class EstructuraLimpia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
@@ -32,9 +35,6 @@ namespace backend.Migrations
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Metodo")
-                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Monto")
                         .HasColumnType("TEXT");
@@ -112,27 +112,6 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Recordatorios");
-                });
-
-            modelBuilder.Entity("backend.Models.TarjetaCredito", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("DeudaActual")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Limite")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TarjetasCredito");
                 });
 #pragma warning restore 612, 618
         }
