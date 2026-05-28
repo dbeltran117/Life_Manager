@@ -47,6 +47,28 @@ app.MapPost("/api/ingresos", async (Ingreso nuevoIngreso, AppDbContext db) =>
     return Results.Created($"/api/ingresos/{nuevoIngreso.Id}", nuevoIngreso);
 });
 
+// --- GASTOS ---
+app.MapGet("/api/gastos", async (AppDbContext db) =>
+    Results.Ok(await db.Gastos.ToListAsync()));
+
+app.MapPost("/api/gastos", async (Gasto nuevoGasto, AppDbContext db) =>
+{
+    db.Gastos.Add(nuevoGasto);
+
+    // MAGIA MULTI-TARJETA: Buscamos la tarjeta exacta que seleccionaste
+    if (nuevoGasto.Metodo == MetodoPago.TarjetaCredito && nuevoGasto.TarjetaId.HasValue)
+    {
+        var tarjeta = await db.TarjetasCredito.FindAsync(nuevoGasto.TarjetaId.Value);
+        if (tarjeta != null)
+        {
+            tarjeta.DeudaActual += nuevoGasto.Monto;
+        }
+    }
+
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/gastos/{nuevoGasto.Id}", nuevoGasto);
+});
+
 // --- TARJETAS DE CRÉDITO ---
 app.MapGet("/api/tarjetas", async (AppDbContext db) =>
     Results.Ok(await db.TarjetasCredito.ToListAsync()));
@@ -56,6 +78,30 @@ app.MapPost("/api/tarjetas", async (TarjetaCredito nuevaTarjeta, AppDbContext db
     db.TarjetasCredito.Add(nuevaTarjeta);
     await db.SaveChangesAsync();
     return Results.Created($"/api/tarjetas/{nuevaTarjeta.Id}", nuevaTarjeta);
+});
+
+// NUEVO: ENDPOINT PARA ABONAR A LA TARJETA
+app.MapPost("/api/tarjetas/{id}/pagar", async (int id, PagoTarjetaDto pago, AppDbContext db) =>
+{
+    var tarjeta = await db.TarjetasCredito.FindAsync(id);
+    if (tarjeta == null) return Results.NotFound();
+
+    // 1. Bajamos la deuda de la tarjeta
+    tarjeta.DeudaActual -= pago.Monto;
+    if (tarjeta.DeudaActual < 0) tarjeta.DeudaActual = 0; // Evitar deudas negativas
+
+    // 2. Registramos la salida de tu dinero real (Efectivo/Débito)
+    var gastoPago = new Gasto {
+        Descripcion = $"Abono a tarjeta: {tarjeta.Nombre}",
+        Monto = pago.Monto,
+        Categoria = CategoriaGasto.GastoFijo,
+        Metodo = MetodoPago.Efectivo,
+        Fecha = DateTime.Now
+    };
+    db.Gastos.Add(gastoPago);
+
+    await db.SaveChangesAsync();
+    return Results.Ok(tarjeta);
 });
 
 // --- HOBBIES (RACHAS) ---
@@ -69,29 +115,22 @@ app.MapPost("/api/hobbies", async (Hobby nuevoHobby, AppDbContext db) =>
     return Results.Created($"/api/hobbies/{nuevoHobby.Id}", nuevoHobby);
 });
 
-
-// --- GASTOS ---
-// ¡Te faltaba este endpoint para poder leer la lista de gastos!
-app.MapGet("/api/gastos", async (AppDbContext db) =>
-    Results.Ok(await db.Gastos.ToListAsync()));
-
-app.MapPost("/api/gastos", async (Gasto nuevoGasto, AppDbContext db) =>
+// NUEVO: ENDPOINT PARA ABONAR A LA TARJETA
+app.MapPost("/api/tarjetas/{id}/pagar", async (int id, PagoTarjetaDto pago, AppDbContext db) =>
 {
-    // 1. Guardamos el gasto en el historial
-    db.Gastos.Add(nuevoGasto);
+    var tarjeta = await db.TarjetasCredito.FindAsync(id);
+    if (tarjeta == null) return Results.NotFound();
 
-    // 2. MAGIA: Si usaste la tarjeta, buscamos tu tarjeta y le sumamos la deuda
-    if (nuevoGasto.Metodo == MetodoPago.TarjetaCredito)
-    {
-        var miTarjeta = await db.TarjetasCredito.FirstOrDefaultAsync();
-        if (miTarjeta != null)
-        {
-            miTarjeta.DeudaActual += nuevoGasto.Monto;
-        }
-    }
+    // 1. Bajamos la deuda de la tarjeta directamente
+    tarjeta.DeudaActual -= pago.Monto;
+    if (tarjeta.DeudaActual < 0) tarjeta.DeudaActual = 0; 
 
-    // 3. Guardamos todos los cambios al mismo tiempo
+    // (ELIMINAMOS LA CREACIÓN DEL GASTO EXTRA PARA EVITAR DOBLE CONTABILIDAD)
+
     await db.SaveChangesAsync();
-    return Results.Created($"/api/gastos/{nuevoGasto.Id}", nuevoGasto);
+    return Results.Ok(tarjeta);
 });
+
 app.Run();
+
+public class PagoTarjetaDto { public decimal Monto { get; set; } }
