@@ -139,8 +139,15 @@ export default function Finanzas() {
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700 shadow-xl">
             <h3 className="text-red-400 font-bold mb-4 uppercase">➖ Registrar Gasto</h3>
             <form onSubmit={handleGasto} className="space-y-4">
-              <input type="text" placeholder="¿En qué se fue?" required value={formGasto.descripcion} onChange={e => setFormGasto({...formGasto, descripcion: e.target.value})} className="w-full bg-gray-800 border border-gray-600 p-2 rounded text-white outline-none focus:border-red-500"/>
-              <input type="number" step="0.01" placeholder="Monto $" required value={formGasto.monto} onChange={e => setFormGasto({...formGasto, monto: e.target.value})} className="w-full bg-gray-800 border border-gray-600 p-2 rounded text-white outline-none focus:border-red-500"/>
+              {/* 1. PRIMERO EL MONTO (Para que dejes de confundirte) */}
+              <input type="number" step="0.01" placeholder="Monto $" required value={formGasto.monto} 
+                onChange={e => setFormGasto({...formGasto, monto: e.target.value})} 
+                className="w-full bg-gray-800 border border-gray-600 p-2 rounded text-white outline-none focus:border-red-500"/>
+              
+              {/* 2. DESPUÉS LA DESCRIPCIÓN */}
+              <input type="text" placeholder="¿En qué se fue?" required value={formGasto.descripcion} 
+                onChange={e => setFormGasto({...formGasto, descripcion: e.target.value})} 
+                className="w-full bg-gray-800 border border-gray-600 p-2 rounded text-white outline-none focus:border-red-500"/>
               
               <div className="flex gap-2">
                 <select value={formGasto.categoria} onChange={e => setFormGasto({...formGasto, categoria: e.target.value})} className="w-1/2 bg-gray-800 border border-gray-600 p-2 rounded text-white outline-none focus:border-red-500">
@@ -154,7 +161,6 @@ export default function Finanzas() {
                 </select>
               </div>
 
-              {/* Si elige Tarjeta, mostramos un selector extra para saber CÚAL tarjeta */}
               {parseInt(formGasto.metodo) === 1 && (
                 <select value={formGasto.tarjetaId} onChange={e => setFormGasto({...formGasto, tarjetaId: e.target.value})} className="w-full bg-blue-900/30 border border-blue-600 p-2 rounded text-blue-300 outline-none">
                   {tarjetas.length === 0 ? <option value="">No hay tarjetas</option> : tarjetas.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}

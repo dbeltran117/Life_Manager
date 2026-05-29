@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
-using backend.Models; // Agregamos esto para que reconozca la clase Transaccion
+using backend.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +9,6 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirReact", policy =>
     {
-        // El puerto 5173 es donde corre tu Vite
         policy.WithOrigins("http://localhost:5173") 
               .AllowAnyHeader()
               .AllowAnyMethod();
@@ -33,7 +32,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 2. APLICAR CORS (Debe ir antes de las rutas)
+// 2. APLICAR CORS
 app.UseCors("PermitirReact");
 
 // --- INGRESOS ---
@@ -80,30 +79,6 @@ app.MapPost("/api/tarjetas", async (TarjetaCredito nuevaTarjeta, AppDbContext db
     return Results.Created($"/api/tarjetas/{nuevaTarjeta.Id}", nuevaTarjeta);
 });
 
-// NUEVO: ENDPOINT PARA ABONAR A LA TARJETA
-app.MapPost("/api/tarjetas/{id}/pagar", async (int id, PagoTarjetaDto pago, AppDbContext db) =>
-{
-    var tarjeta = await db.TarjetasCredito.FindAsync(id);
-    if (tarjeta == null) return Results.NotFound();
-
-    // 1. Bajamos la deuda de la tarjeta
-    tarjeta.DeudaActual -= pago.Monto;
-    if (tarjeta.DeudaActual < 0) tarjeta.DeudaActual = 0; // Evitar deudas negativas
-
-    // 2. Registramos la salida de tu dinero real (Efectivo/Débito)
-    var gastoPago = new Gasto {
-        Descripcion = $"Abono a tarjeta: {tarjeta.Nombre}",
-        Monto = pago.Monto,
-        Categoria = CategoriaGasto.GastoFijo,
-        Metodo = MetodoPago.Efectivo,
-        Fecha = DateTime.Now
-    };
-    db.Gastos.Add(gastoPago);
-
-    await db.SaveChangesAsync();
-    return Results.Ok(tarjeta);
-});
-
 // --- HOBBIES (RACHAS) ---
 app.MapGet("/api/hobbies", async (AppDbContext db) =>
     Results.Ok(await db.Hobbies.ToListAsync()));
@@ -115,22 +90,58 @@ app.MapPost("/api/hobbies", async (Hobby nuevoHobby, AppDbContext db) =>
     return Results.Created($"/api/hobbies/{nuevoHobby.Id}", nuevoHobby);
 });
 
-// NUEVO: ENDPOINT PARA ABONAR A LA TARJETA
-app.MapPost("/api/tarjetas/{id}/pagar", async (int id, PagoTarjetaDto pago, AppDbContext db) =>
+// --- ABONOS A TARJETAS (LA VERSIÓN CORRECTA Y ÚNICA) ---
+app.MapGet("/api/abonos", async (AppDbContext db) =>
+    Results.Ok(await db.Abonos.ToListAsync()));
+
+app.MapPost("/api/tarjetas/{id}/pagar", async (int id, Abono nuevoAbono, AppDbContext db) =>
 {
     var tarjeta = await db.TarjetasCredito.FindAsync(id);
     if (tarjeta == null) return Results.NotFound();
 
-    // 1. Bajamos la deuda de la tarjeta directamente
-    tarjeta.DeudaActual -= pago.Monto;
+    // 1. Bajamos la deuda de la tarjeta
+    tarjeta.DeudaActual -= nuevoAbono.Monto;
     if (tarjeta.DeudaActual < 0) tarjeta.DeudaActual = 0; 
 
-    // (ELIMINAMOS LA CREACIÓN DEL GASTO EXTRA PARA EVITAR DOBLE CONTABILIDAD)
+    // 2. Guardamos el historial del abono
+    nuevoAbono.TarjetaId = id;
+    db.Abonos.Add(nuevoAbono);
 
     await db.SaveChangesAsync();
     return Results.Ok(tarjeta);
 });
 
-app.Run();
+// --- RECORDATORIOS (KANBAN) ---
+app.MapGet("/api/recordatorios", async (AppDbContext db) =>
+    Results.Ok(await db.Recordatorios.ToListAsync()));
 
-public class PagoTarjetaDto { public decimal Monto { get; set; } }
+app.MapPost("/api/recordatorios", async (Recordatorio nuevo, AppDbContext db) =>
+{
+    db.Recordatorios.Add(nuevo);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/recordatorios/{nuevo.Id}", nuevo);
+});
+
+// Este endpoint se dispara cuando arrastras la tarjeta a otra columna
+app.MapPut("/api/recordatorios/{id}/mover", async (int id, Recordatorio updateParams, AppDbContext db) =>
+{
+    var rec = await db.Recordatorios.FindAsync(id);
+    if (rec == null) return Results.NotFound();
+
+    rec.Estado = updateParams.Estado;
+    await db.SaveChangesAsync();
+    return Results.Ok(rec);
+});
+
+// Este endpoint es por si quieres borrar la tarea
+app.MapDelete("/api/recordatorios/{id}", async (int id, AppDbContext db) =>
+{
+    var rec = await db.Recordatorios.FindAsync(id);
+    if (rec == null) return Results.NotFound();
+
+    db.Recordatorios.Remove(rec);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.Run();

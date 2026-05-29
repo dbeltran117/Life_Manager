@@ -14,5 +14,6 @@ namespace backend.Data
         public DbSet<Recordatorio> Recordatorios { get; set; }
         public DbSet<Hobby> Hobbies { get; set; }
         public DbSet<TarjetaCredito> TarjetasCredito { get; set; }
+        public DbSet<Abono> Abonos { get; set; }
     }
 }

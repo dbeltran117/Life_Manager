@@ -1,133 +1,222 @@
 import { useState, useEffect } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 export default function Dashboard() {
-  const [metricas, setMetricas] = useState({ ingresos: 0, gastos: 0, balance: 0 });
+  const [metricas, setMetricas] = useState({ ingresos: 0, gastosTotales: 0, liquidez: 0 });
   const [tarjeta, setTarjeta] = useState({ limite: 0, deuda: 0, disponible: 0, existe: false });
-  const [hobbies, setHobbies] = useState([]); // Nuevo estado para tus rachas
+  const [hobbies, setHobbies] = useState([]);
+  const [recordatorios, setRecordatorios] = useState([]);
+  const [ingresosRecientes, setIngresosRecientes] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    // Disparamos 4 peticiones al mismo tiempo
-    Promise.all([
-      fetch('http://localhost:5240/api/ingresos').then(res => res.json()),
-      fetch('http://localhost:5240/api/gastos').then(res => res.json()),
-      fetch('http://localhost:5240/api/tarjetas').then(res => res.json()),
-      fetch('http://localhost:5240/api/hobbies').then(res => res.json()) // Traemos las rachas
-    ])
-    .then(([dataIngresos, dataGastos, dataTarjetas, dataHobbies]) => {
-      const totalIngresos = dataIngresos.reduce((suma, item) => suma + item.monto, 0);
-      const totalGastos = dataGastos.reduce((suma, item) => suma + item.monto, 0);
-      
-      setMetricas({
-        ingresos: totalIngresos,
-        gastos: totalGastos,
-        balance: totalIngresos - totalGastos
-      });
+  const [datosFinanzas, setDatosFinanzas] = useState([]);
+  const PUERTO = "5240";
 
-      if (dataTarjetas.length > 0) {
-        const miTarjeta = dataTarjetas[0];
-        setTarjeta({
-          limite: miTarjeta.limite,
-          deuda: miTarjeta.deudaActual,
-          disponible: miTarjeta.disponible,
-          existe: true
-        });
+  useEffect(() => {
+    Promise.all([
+      fetch(`http://localhost:${PUERTO}/api/ingresos`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/gastos`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/tarjetas`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/hobbies`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/abonos`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/recordatorios`).then(res => res.json())
+    ])
+    .then(([dIngresos, dGastos, dTarjetas, dHobbies, dAbonos, dRecordatorios]) => {
+      
+      const totalIngresos = dIngresos.reduce((s, i) => s + i.monto, 0);
+      const totalGastosVisual = dGastos.reduce((s, i) => s + i.monto, 0);
+      const gastosEfectivo = dGastos.filter(g => g.metodo === 0).reduce((s, i) => s + i.monto, 0);
+      const totalAbonos = dAbonos.reduce((s, i) => s + i.monto, 0);
+      const dineroFisico = totalIngresos - gastosEfectivo - totalAbonos;
+
+      setMetricas({ ingresos: totalIngresos, gastosTotales: totalGastosVisual, liquidez: dineroFisico });
+
+      if (dTarjetas.length > 0) {
+        setTarjeta({ limite: dTarjetas[0].limite, deuda: dTarjetas[0].deudaActual, disponible: dTarjetas[0].limite - dTarjetas[0].deudaActual, existe: true });
       }
 
-      // Guardamos las rachas en el estado
-      setHobbies(dataHobbies);
+      setHobbies(dHobbies);
+      
+      // Guardamos los últimos 4 ingresos para mostrarlos
+      setIngresosRecientes(dIngresos.slice(-4).reverse());
+
+      setRecordatorios(dRecordatorios.filter(r => r.nivelPrioridad === 2 && r.estado !== 2).slice(0, 3));
+
+      const mockTendencia = dGastos.slice(-7).map(g => ({
+        // Le añadimos la hora para que distingas compras del mismo día
+        fecha: new Date(g.fecha).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}),
+        gasto: g.monto,
+        descripcion: g.descripcion,
+        // Traducimos el número del método a un texto legible
+        metodo: g.metodo === 0 ? '💵 Efectivo' : '💳 Crédito'
+      }));
+      setDatosFinanzas(mockTendencia);
+
       setCargando(false);
     })
-    .catch(error => {
-      console.error("Error al cargar métricas:", error);
-      setCargando(false);
-    });
+    .catch(() => setCargando(false));
   }, []);
 
+  const fmt = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (cargando) return <div className="p-8 text-purple-500 animate-pulse font-bold">Sincronizando Sistema de Control...</div>;
+
   return (
-    <div className="text-white animate-fade-in">
-      <header className="mb-8 border-b border-gray-700 pb-4">
-        <h2 className="text-3xl font-bold text-purple-400 tracking-wide">Panel de Control</h2>
-        <p className="text-gray-400 mt-1">Resumen general de tu voluntad y recursos.</p>
+    <div className="space-y-6 text-white animate-fade-in pb-10">
+      <header className="flex justify-between items-end border-b border-gray-700 pb-4">
+        <div>
+          <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 uppercase italic">Control de Mando</h2>
+          <p className="text-gray-500 text-sm mt-1 font-mono">Status: Online | User: Diego</p>
+        </div>
       </header>
 
-      {cargando ? (
-        <div className="flex justify-center items-center h-32">
-          <p className="text-purple-500 animate-pulse font-semibold">Calculando estado...</p>
+      {/* FILA 1: MÉTRICAS Y RECORDATORIOS CRÍTICOS */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard title="Liquidez Real" value={`$${fmt(metricas.liquidez)}`} color="bg-purple-600" />
+          <StatCard title="Consumo Total" value={`$${fmt(metricas.gastosTotales)}`} color="bg-red-600" />
+          <StatCard title="Deuda Actual" value={`$${fmt(tarjeta.deuda)}`} color="bg-blue-600" />
         </div>
-      ) : (
-        <>
-          {/* Fila 1: Dinero Real */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Ingresos Totales</h3>
-              <p className="text-3xl font-bold text-green-400">${metricas.ingresos.toFixed(2)}</p>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Gastos Totales</h3>
-              <p className="text-3xl font-bold text-red-400">${metricas.gastos.toFixed(2)}</p>
-            </div>
-
-            <div className={`bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg relative overflow-hidden ${metricas.balance < 0 ? 'ring-1 ring-red-500/50' : ''}`}>
-              <div className={`absolute top-0 left-0 w-1 h-full ${metricas.balance >= 0 ? 'bg-purple-500' : 'bg-red-600'}`}></div>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Balance Actual</h3>
-              <p className={`text-3xl font-bold ${metricas.balance >= 0 ? 'text-white' : 'text-red-500'}`}>${metricas.balance.toFixed(2)}</p>
-            </div>
-          </div>
-
-          {/* Fila 2: Crédito */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Deuda de Tarjeta</h3>
-              {tarjeta.existe ? (
-                <div>
-                  <p className="text-3xl font-bold text-blue-400 mb-2">${tarjeta.deuda.toFixed(2)}</p>
-                  <div className="w-full bg-gray-800 rounded-full h-2.5 mt-2">
-                    <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${(tarjeta.deuda / tarjeta.limite) * 100}%` }}></div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 text-right">Límite: ${tarjeta.limite}</p>
-                </div>
-              ) : (
-                <p className="text-gray-500 italic text-sm">No hay tarjetas registradas.</p>
-              )}
-            </div>
-
-            <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-teal-500"></div>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Crédito Disponible</h3>
-              {tarjeta.existe ? (
-                <p className="text-3xl font-bold text-teal-400">${tarjeta.disponible.toFixed(2)}</p>
-              ) : (
-                <p className="text-gray-500 italic text-sm">No hay tarjetas registradas.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Fila 3: Rachas y Disciplina */}
-          <section className="bg-gray-900 border border-gray-700 rounded-lg p-6 min-h-[200px] mb-10">
-            <h3 className="text-xl font-bold text-purple-400 mb-4 uppercase tracking-wider border-b border-gray-700 pb-2">Rachas Activas y Disciplina</h3>
-            {hobbies.length === 0 ? (
-              <p className="text-gray-500 italic text-sm mt-4">Aún no hay datos de disciplina. ¡Registra tus proyectos en el módulo de Hobbies!</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                {hobbies.map(hobby => (
-                  <div key={hobby.id} className="bg-[#1a1a1a] border border-gray-600 p-4 rounded flex flex-col items-center justify-center hover:border-purple-500 transition-colors shadow-inner">
-                    <span className="text-gray-300 font-semibold mb-2 text-center">{hobby.nombre}</span>
-                    <div className="flex items-end gap-1">
-                      <span className="text-4xl font-bold text-purple-500">{hobby.horasInvertidas}</span>
-                      <span className="text-sm text-gray-400 mb-1">hrs</span>
-                    </div>
-                  </div>
-                ))}
+        
+        <div className="bg-gray-900/50 border border-red-900/30 p-4 rounded-xl shadow-inner backdrop-blur-sm">
+          <h4 className="text-red-500 text-xs font-bold uppercase mb-3 flex items-center gap-2">
+            <span className="animate-ping w-2 h-2 rounded-full bg-red-500"></span> Prioridad Crítica
+          </h4>
+          <div className="space-y-3">
+            {recordatorios.length > 0 ? recordatorios.map(r => (
+              <div key={r.id} className="text-xs bg-red-500/10 border-l-2 border-red-500 p-2 rounded">
+                <p className="font-bold text-gray-200">{r.titulo}</p>
+                <p className="text-gray-500 truncate">{r.descripcion}</p>
               </div>
+            )) : <p className="text-gray-600 text-[10px] italic">Sin amenazas detectadas.</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* FILA 2: GRÁFICAS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfica de Tendencia Financiera */}
+        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl">
+          <h3 className="text-lg font-bold mb-6 text-gray-300">Flujo de Gastos</h3>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={datosFinanzas}>
+                <defs>
+                  <linearGradient id="colorGasto" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="fecha" stroke="#444" fontSize={10} />
+                <YAxis stroke="#444" fontSize={10} tickFormatter={(val) => `$${val}`} />
+                <Tooltip content={<TooltipOscuro />} cursor={{stroke: '#ef4444', strokeWidth: 1, strokeDasharray: '4 4'}} />
+                <Area type="monotone" dataKey="gasto" stroke="#ef4444" fillOpacity={1} fill="url(#colorGasto)" strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gráfica de Hobbies */}
+        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl">
+          <h3 className="text-lg font-bold mb-6 text-gray-300">Inversión en Disciplina (hrs)</h3>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hobbies}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="nombre" stroke="#444" fontSize={10} />
+                <YAxis stroke="#444" fontSize={10} />
+                <Tooltip cursor={{fill: '#222'}} contentStyle={{backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px'}} />
+                <Bar dataKey="horasInvertidas" radius={[5, 5, 0, 0]}>
+                  {hobbies.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#a855f7' : '#3b82f6'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+      
+      {/* FILA 3: ESTADO DE CRÉDITO E INGRESOS RECIENTES */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Tarjeta de Crédito Visual */}
+        {tarjeta.existe ? (
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+             <div className="flex justify-between items-center mb-4">
+                <h3 className="text-gray-400 font-bold uppercase text-sm tracking-widest">Estado de Crédito</h3>
+                <span className="text-blue-400 font-mono text-xl">${fmt(tarjeta.deuda)} / ${fmt(tarjeta.limite)}</span>
+             </div>
+             <div className="w-full bg-gray-800 rounded-full h-4 overflow-hidden border border-gray-700">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-full transition-all duration-1000 shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
+                     style={{ width: `${(tarjeta.deuda / tarjeta.limite) * 100}%` }}></div>
+             </div>
+          </div>
+        ) : (
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex items-center justify-center">
+            <p className="text-gray-600 italic">No hay tarjetas de crédito en la bóveda.</p>
+          </div>
+        )}
+
+        {/* Historial Corto de Ingresos */}
+        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+          <h3 className="text-gray-400 font-bold uppercase text-sm tracking-widest mb-4">Últimos Ingresos</h3>
+          <div className="space-y-3">
+            {ingresosRecientes.length > 0 ? ingresosRecientes.map(ing => (
+              <div key={ing.id} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                <div>
+                  <p className="text-sm text-gray-300 font-semibold">{ing.origen === 0 ? 'Trabajo' : 'Mesada'}</p>
+                  <p className="text-[10px] text-gray-500">{new Date(ing.fecha).toLocaleDateString()}</p>
+                </div>
+                <span className="text-green-400 font-mono font-bold">+${fmt(ing.monto)}</span>
+              </div>
+            )) : (
+              <p className="text-gray-600 italic text-sm text-center mt-4">Sin ingresos registrados.</p>
             )}
-          </section>
-        </>
-      )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
+}
+
+function StatCard({ title, value, color }) {
+  return (
+    <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl relative overflow-hidden group hover:border-gray-600 transition-all">
+      <div className={`absolute top-0 left-0 w-1 h-full ${color}`}></div>
+      <h3 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">{title}</h3>
+      <p className="text-3xl font-black tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+// NUEVO COMPONENTE: Tooltip con estilo Dark Fantasy / Neón
+function TooltipOscuro({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    const datosDelPunto = payload[0].payload;
+    
+    return (
+      <div className="bg-[#0a0a0a] border border-red-900/80 p-3 rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] backdrop-blur-md">
+        <p className="text-gray-500 font-mono text-[10px] uppercase tracking-widest border-b border-gray-800 pb-1 mb-2">
+          {label}
+        </p>
+        
+        <p className="text-gray-200 text-sm font-semibold italic">
+          "{datosDelPunto.descripcion}"
+        </p>
+        
+        {/* AQUÍ IMPRIMIMOS EL MÉTODO DE PAGO */}
+        <p className="text-gray-400 text-xs mb-1 font-mono">
+          {datosDelPunto.metodo}
+        </p>
+        
+        <p className="text-red-500 font-bold text-lg drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+          ⚔️ Gasto: ${payload[0].value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </div>
+    );
+  }
+  return null;
 }
