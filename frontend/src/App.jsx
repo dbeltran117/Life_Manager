@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './views/Dashboard';
 import Finanzas from './views/Finanzas';
+import GemiChat from './components/GemiChat';
 
 function Sidebar() {
   return (
@@ -13,7 +14,6 @@ function Sidebar() {
       </div>
       
       <nav className="flex flex-col gap-4">
-        {/* Usamos Link en lugar de etiquetas <a> para que la página no recargue */}
         <Link to="/" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
           📊 Dashboard
         </Link>
@@ -34,20 +34,23 @@ function Sidebar() {
 function App() {
   return (
     <Router>
-      <div className="flex min-h-screen bg-[#121212] font-sans">
+      <div className="flex min-h-screen bg-[#121212] font-sans relative">
         {/* Barra Lateral Fija */}
         <Sidebar />
 
         {/* Contenido Dinámico */}
         <main className="flex-1 p-8 overflow-y-auto">
           <Routes>
-            {/* Aquí definimos qué componente se carga según la URL */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/finanzas" element={<Finanzas />} />
             <Route path="/recordatorios" element={<div className="text-white">Vista de Recordatorios en construcción...</div>} />
             <Route path="/hobbies" element={<div className="text-white">Vista de Hobbies en construcción...</div>} />
           </Routes>
         </main>
+
+        {/* AQUÍ VA GEMI-CHAN: Fuera de las rutas, para que flote en toda la app */}
+        <GemiChat />
+        
       </div>
     </Router>
   );
