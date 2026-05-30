@@ -23,6 +23,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHostedService<backend.Services.DiscordNotifierService>();
 builder.Services.AddHttpClient(); // Permiso para que C# hable con Gemini
 
 var app = builder.Build();

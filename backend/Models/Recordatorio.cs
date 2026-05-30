@@ -9,11 +9,14 @@ namespace backend.Models
 
     public class Recordatorio
     {
-        public int Id { get; set; }
-        public string Titulo { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-        public Prioridad NivelPrioridad { get; set; }
-        public EstadoRecordatorio Estado { get; set; } = EstadoRecordatorio.Pendiente;
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+    public int Id { get; set; }
+    public string Titulo { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public int NivelPrioridad { get; set; } // 0 = Baja, 1 = Media, 2 = Crítica
+    public int Estado { get; set; } // 0 = Pendiente, 1 = Progreso, 2 = Terminado
+
+    // !!! AGREGA ESTAS DOS LÍNEAS AQUÍ !!!
+    public DateTime FechaCreacion { get; set; } = DateTime.Now;
+    public int DiasDeVida { get; set; } = 0; // 0 = Sin límite, 1 = Un día, 7 = Una semana
     }
 }

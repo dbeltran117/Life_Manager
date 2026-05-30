@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './views/Dashboard';
 import Finanzas from './views/Finanzas';
+import Recordatorios from './views/Recordatorios';
 import GemiChat from './components/GemiChat';
 
 function Sidebar() {
@@ -8,7 +9,7 @@ function Sidebar() {
     <aside className="w-64 bg-gray-900 border-r border-gray-700 p-6 flex flex-col h-screen sticky top-0">
       <div className="mb-10 text-center">
         <h1 className="text-2xl font-bold text-purple-500 tracking-widest uppercase">
-          LifeManager
+         LifeManager
         </h1>
         <p className="text-xs text-gray-500 mt-1 italic">Control de la voluntad</p>
       </div>
@@ -43,7 +44,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/finanzas" element={<Finanzas />} />
-            <Route path="/recordatorios" element={<div className="text-white">Vista de Recordatorios en construcción...</div>} />
+            <Route path="/recordatorios" element={<Recordatorios />} />
             <Route path="/hobbies" element={<div className="text-white">Vista de Hobbies en construcción...</div>} />
           </Routes>
         </main>

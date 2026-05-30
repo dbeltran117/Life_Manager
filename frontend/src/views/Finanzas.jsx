@@ -102,8 +102,8 @@ export default function Finanzas() {
   return (
     <div className="space-y-8 animate-fade-in text-white">
       <header className="border-b border-gray-700 pb-4">
-        <h2 className="text-3xl font-bold text-purple-400">Gestión de Finanzas</h2>
-        <p className="text-gray-400">Administra tus recursos, deudas y abonos.</p>
+        <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 uppercase italic">Gestión de Finanzas</h2>
+        <p className="text-gray-500 text-sm mt-1 font-mono">Administra tus recursos, deudas y abonos.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
