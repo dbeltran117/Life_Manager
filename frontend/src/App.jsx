@@ -3,6 +3,8 @@ import Dashboard from './views/Dashboard';
 import Finanzas from './views/Finanzas';
 import Recordatorios from './views/Recordatorios';
 import GemiChat from './components/GemiChat';
+import Fe from './views/Fe';
+import Tridente from './views/Tridente'; // <-- IMPORTAMOS EL NUEVO HUB
 
 function Sidebar() {
   return (
@@ -24,8 +26,9 @@ function Sidebar() {
         <Link to="/recordatorios" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
           ⏰ Recordatorios
         </Link>
-        <Link to="/hobbies" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
-          🎮 Hobbies
+        {/* REEMPLAZAMOS HOBBIES Y FE POR ESTO */}
+        <Link to="/tridente" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
+          🔱 Tridente
         </Link>
       </nav>
     </aside>
@@ -36,22 +39,25 @@ function App() {
   return (
     <Router>
       <div className="flex min-h-screen bg-[#121212] font-sans relative">
-        {/* Barra Lateral Fija */}
         <Sidebar />
 
-        {/* Contenido Dinámico */}
         <main className="flex-1 p-8 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/finanzas" element={<Finanzas />} />
             <Route path="/recordatorios" element={<Recordatorios />} />
-            <Route path="/hobbies" element={<div className="text-white">Vista de Hobbies en construcción...</div>} />
+            
+            {/* LA RUTA DEL HUB PRINCIPAL */}
+            <Route path="/tridente" element={<Tridente />} />
+            
+            {/* LAS RUTAS INDIVIDUALES DEL TRIDENTE */}
+            <Route path="/fe" element={<Fe />} />
+            <Route path="/cuerpo" element={<div className="text-white">Módulo Cuerpo en construcción...</div>} />
+            <Route path="/mente" element={<div className="text-white">Módulo Mente en construcción...</div>} />
           </Routes>
         </main>
 
-        {/* AQUÍ VA GEMI-CHAN: Fuera de las rutas, para que flote en toda la app */}
         <GemiChat />
-        
       </div>
     </Router>
   );

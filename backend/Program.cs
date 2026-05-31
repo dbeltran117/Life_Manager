@@ -194,6 +194,43 @@ app.MapPost("/api/chat", async (ConsultaFinanciera req, AppDbContext db, HttpCli
     return Results.Ok(new { respuesta = respuestaGemi });
 });
 
+// ==========================================
+// PILAR DE LA FE: VERSÍCULOS Y DEVOCIONALES
+// ==========================================
+
+// 1. Obtener todos los devocionales (ordenados del más reciente al más antiguo)
+app.MapGet("/api/fe", async (AppDbContext db) => 
+{
+    var historial = await db.Versiculos
+        .OrderByDescending(v => v.FechaCreacion)
+        .ToListAsync();
+    return Results.Ok(historial);
+});
+
+// 2. Guardar un nuevo devocional
+app.MapPost("/api/fe", async (AppDbContext db, Versiculo nuevoDevocional) => 
+{
+    // Nos aseguramos de que la fecha sea exacta al momento de guardarlo
+    nuevoDevocional.FechaCreacion = DateTime.Now;
+    
+    db.Versiculos.Add(nuevoDevocional);
+    await db.SaveChangesAsync();
+    
+    return Results.Created($"/api/fe/{nuevoDevocional.Id}", nuevoDevocional);
+});
+
+// 3. Eliminar un devocional (por si te equivocas o quieres purgar algo)
+app.MapDelete("/api/fe/{id}", async (int id, AppDbContext db) => 
+{
+    var devocional = await db.Versiculos.FindAsync(id);
+    if (devocional is null) return Results.NotFound("Ese devocional no existe en los registros, baka-chan.");
+    
+    db.Versiculos.Remove(devocional);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok("Devocional purgado de la base de datos.");
+});
+
 app.Run();
 
 // Clases auxiliares
