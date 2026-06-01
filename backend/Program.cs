@@ -231,6 +231,93 @@ app.MapDelete("/api/fe/{id}", async (int id, AppDbContext db) =>
     return Results.Ok("Devocional purgado de la base de datos.");
 });
 
+// ==========================================
+// 🏋️‍♂️ MÓDULO: CUERPO (RegistroFisico)
+// ==========================================
+
+// GET: Obtener historial físico (ordenado por los más recientes)
+app.MapGet("/api/cuerpo", async (AppDbContext db) =>
+{
+    return await db.RegistrosFisicos.OrderByDescending(c => c.Fecha).ToListAsync();
+});
+
+// POST: Registrar un nuevo entrenamiento
+app.MapPost("/api/cuerpo", async (RegistroFisico registro, AppDbContext db) =>
+{
+    // Forzamos la fecha del servidor por seguridad
+    registro.Fecha = DateTime.Now; 
+    
+    db.RegistrosFisicos.Add(registro);
+    await db.SaveChangesAsync();
+    
+    return Results.Created($"/api/cuerpo/{registro.Id}", registro);
+});
+
+// DELETE: Borrar un registro físico por si te equivocaste
+app.MapDelete("/api/cuerpo/{id}", async (int id, AppDbContext db) =>
+{
+    var registro = await db.RegistrosFisicos.FindAsync(id);
+    if (registro is null) return Results.NotFound(new { mensaje = "Registro no encontrado, baka." });
+
+    db.RegistrosFisicos.Remove(registro);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok();
+});
+
+
+// ==========================================
+// 🧠 MÓDULO: MENTE (EscritoMente)
+// ==========================================
+
+// GET: Obtener todos los borradores y escritos (ordenados por última modificación)
+app.MapGet("/api/mente", async (AppDbContext db) =>
+{
+    return await db.EscritosMente.OrderByDescending(m => m.FechaModificacion).ToListAsync();
+});
+
+// POST: Crear un nuevo escrito
+app.MapPost("/api/mente", async (EscritoMente escrito, AppDbContext db) =>
+{
+    escrito.FechaCreacion = DateTime.Now;
+    escrito.FechaModificacion = DateTime.Now;
+    
+    db.EscritosMente.Add(escrito);
+    await db.SaveChangesAsync();
+    
+    return Results.Created($"/api/mente/{escrito.Id}", escrito);
+});
+
+// PUT: Actualizar/Editar un texto existente (Exclusivo de este módulo)
+app.MapPut("/api/mente/{id}", async (int id, EscritoMente escritoActualizado, AppDbContext db) =>
+{
+    var escrito = await db.EscritosMente.FindAsync(id);
+    if (escrito is null) return Results.NotFound();
+
+    // Actualizamos solo los campos que importan
+    escrito.Titulo = escritoActualizado.Titulo;
+    escrito.Tipo = escritoActualizado.Tipo;
+    escrito.Contenido = escritoActualizado.Contenido;
+    
+    // El toque técnico: actualizamos la fecha de modificación automáticamente
+    escrito.FechaModificacion = DateTime.Now; 
+
+    await db.SaveChangesAsync();
+    return Results.NoContent(); // Código 204: Éxito sin devolver contenido extra
+});
+
+// DELETE: Eliminar un escrito permanentemente
+app.MapDelete("/api/mente/{id}", async (int id, AppDbContext db) =>
+{
+    var escrito = await db.EscritosMente.FindAsync(id);
+    if (escrito is null) return Results.NotFound();
+
+    db.EscritosMente.Remove(escrito);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok();
+});
+
 app.Run();
 
 // Clases auxiliares

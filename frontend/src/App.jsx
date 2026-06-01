@@ -4,7 +4,9 @@ import Finanzas from './views/Finanzas';
 import Recordatorios from './views/Recordatorios';
 import GemiChat from './components/GemiChat';
 import Fe from './views/Fe';
-import Tridente from './views/Tridente'; // <-- IMPORTAMOS EL NUEVO HUB
+import Tridente from './views/Tridente'; 
+import Cuerpo from './views/Cuerpo';
+import Mente from './views/Mente';
 
 function Sidebar() {
   return (
@@ -46,14 +48,10 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/finanzas" element={<Finanzas />} />
             <Route path="/recordatorios" element={<Recordatorios />} />
-            
-            {/* LA RUTA DEL HUB PRINCIPAL */}
             <Route path="/tridente" element={<Tridente />} />
-            
-            {/* LAS RUTAS INDIVIDUALES DEL TRIDENTE */}
             <Route path="/fe" element={<Fe />} />
-            <Route path="/cuerpo" element={<div className="text-white">Módulo Cuerpo en construcción...</div>} />
-            <Route path="/mente" element={<div className="text-white">Módulo Mente en construcción...</div>} />
+            <Route path="/cuerpo" element={<Cuerpo />} />
+            <Route path="/mente" element={<Mente />} />
           </Routes>
         </main>
 

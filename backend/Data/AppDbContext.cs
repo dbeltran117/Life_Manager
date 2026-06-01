@@ -16,5 +16,7 @@ namespace backend.Data
         public DbSet<TarjetaCredito> TarjetasCredito { get; set; }
         public DbSet<Abono> Abonos { get; set; }
         public DbSet<Versiculo> Versiculos { get; set; }
+        public DbSet<RegistroFisico> RegistrosFisicos { get; set; }
+        public DbSet<EscritoMente> EscritosMente { get; set; }
     }
 }

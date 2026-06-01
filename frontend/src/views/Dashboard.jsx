@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from 'recharts';
 
 export default function Dashboard() {
-  // Estado para guardar TODA la base de datos intacta
-  const [db, setDb] = useState({ ingresos: [], gastos: [], tarjetas: [], hobbies: [], abonos: [], recordatorios: [] });
+  const [db, setDb] = useState({ ingresos: [], gastos: [], tarjetas: [], hobbies: [], abonos: [], recordatorios: [], fe: [] });
   const [cargando, setCargando] = useState(true);
   
   // Estado para el filtro de tiempo (Por defecto: Todo)
@@ -18,10 +17,13 @@ export default function Dashboard() {
       fetch(`http://localhost:${PUERTO}/api/tarjetas`).then(res => res.json()),
       fetch(`http://localhost:${PUERTO}/api/hobbies`).then(res => res.json()),
       fetch(`http://localhost:${PUERTO}/api/abonos`).then(res => res.json()),
-      fetch(`http://localhost:${PUERTO}/api/recordatorios`).then(res => res.json())
+      fetch(`http://localhost:${PUERTO}/api/recordatorios`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/fe`).then(res => res.json()), 
+      fetch(`http://localhost:${PUERTO}/api/cuerpo`).then(res => res.json()),
+      fetch(`http://localhost:${PUERTO}/api/mente`).then(res => res.json()) 
     ])
-    .then(([dIngresos, dGastos, dTarjetas, dHobbies, dAbonos, dRecordatorios]) => {
-      setDb({ ingresos: dIngresos, gastos: dGastos, tarjetas: dTarjetas, hobbies: dHobbies, abonos: dAbonos, recordatorios: dRecordatorios });
+    .then(([dIngresos, dGastos, dTarjetas, dHobbies, dAbonos, dRecordatorios, dFe, dCuerpo, dMente]) => {
+      setDb({ ingresos: dIngresos, gastos: dGastos, tarjetas: dTarjetas, hobbies: dHobbies, abonos: dAbonos, recordatorios: dRecordatorios, fe: dFe, cuerpo: dCuerpo, mente: dMente }); // AGREGAMOS fe AL ESTADO CENTRAL
       setCargando(false);
     })
     .catch(err => {
@@ -70,7 +72,7 @@ export default function Dashboard() {
       descripcion: g.descripcion,
       metodo: g.metodo === 0 ? '💵 Efectivo' : '💳 Crédito'
     }));
-
+  
     return { 
       ingresos: totalIngresos, 
       gastosTotales: totalGastosVisual, 
@@ -80,6 +82,27 @@ export default function Dashboard() {
     };
   }, [db, filtroTiempo]);
 
+
+  // Función para filtrar por tiempo
+  const obtenerConteoFiltrado = (lista, campoFecha) => {
+    if (!lista || lista.length === 0) return 0;
+    if (filtroTiempo === 'todo') return lista.length;
+
+    const limite = new Date();
+    if (filtroTiempo === 'semana') limite.setDate(limite.getDate() - 7);
+    else if (filtroTiempo === 'mes') limite.setMonth(limite.getMonth() - 1);
+    else if (filtroTiempo === 'ano') limite.setFullYear(limite.getFullYear() - 1);
+
+    // Filtramos comparando fechas
+    return lista.filter(item => new Date(item[campoFecha]) >= limite).length;
+  };
+
+   // Calculamos los contadores dinámicos usando los nombres correctos de tus propiedades
+  const stats = {
+    fe: obtenerConteoFiltrado(db.fe, 'fechaCreacion'),
+    cuerpo: obtenerConteoFiltrado(db.cuerpo, 'fecha'),
+    mente: obtenerConteoFiltrado(db.mente, 'fechaCreacion')
+  };
 const tarjeta = db.tarjetas.length > 0 
     ? { limite: db.tarjetas[0].limite, deuda: db.tarjetas[0].deudaActual, disponible: db.tarjetas[0].limite - db.tarjetas[0].deudaActual, existe: true, nombre: db.tarjetas[0].nombre } 
     : { limite: 0, deuda: 0, disponible: 0, existe: false };
@@ -89,20 +112,45 @@ const tarjeta = db.tarjetas.length > 0
 
  const fmt = (num) => (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const getVersiculoDelDia = () => {
+  // Ahora apuntamos a db.fe en lugar de la variable suelta
+  if (db.fe.length === 0) return null; 
+  
+  const hoy = new Date();
+  const diaDelAnio = Math.floor((hoy - new Date(hoy.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+  
+  const indice = diaDelAnio % db.fe.length;
+  return db.fe[indice]; // Retornamos desde tu nuevo estado centralizado
+};
+
   if (cargando) return <div className="p-8 text-purple-500 animate-pulse font-bold">Sincronizando Sistema de Control...</div>;
 
   return (
     <div className="space-y-6 text-white animate-fade-in pb-10">
       
-      {/* HEADER CON FILTROS */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-700 pb-4 gap-4">
-        <div>
+      {/* HEADER CON FILTROS Y VERSÍCULO */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-700 pb-4 gap-4">
+        
+        {/* 1. SECCIÓN IZQUIERDA: Títulos */}
+        <div className="flex-shrink-0">
           <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 uppercase italic">Control de Mando</h2>
           <p className="text-gray-500 text-sm mt-1 font-mono">Status: Online | User: Diego</p>
         </div>
+
+        {/* 2. SECCIÓN CENTRAL: Versículo del día (Compacto) */}
+        {getVersiculoDelDia() && (
+          <div className="flex-1 max-w-lg bg-gray-900/40 border border-purple-500/20 rounded-md p-2 hidden md:block shadow-sm">
+            <p className="text-gray-300 italic text-xs text-center line-clamp-2">
+              "{getVersiculoDelDia().texto}"
+            </p>
+            <p className="text-blue-400 font-bold text-[10px] text-right mt-1">
+              {getVersiculoDelDia().referencia}
+            </p>
+          </div>
+        )}
         
-        {/* BOTONES DE FILTRO DE TIEMPO */}
-        <div className="flex bg-gray-900 border border-gray-700 rounded-lg overflow-hidden shadow-lg">
+        {/* 3. SECCIÓN DERECHA: Filtros de Tiempo */}
+        <div className="flex bg-gray-900 border border-gray-700 rounded-lg overflow-hidden shadow-lg flex-shrink-0">
           {['semana', 'mes', 'ano', 'todo'].map(filtro => (
             <button key={filtro} onClick={() => setFiltroTiempo(filtro)}
               className={`px-4 py-2 text-xs font-bold uppercase transition-colors ${filtroTiempo === filtro ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-800'}`}>
@@ -111,7 +159,6 @@ const tarjeta = db.tarjetas.length > 0
           ))}
         </div>
       </header>
-
       {/* FILA 1: MÉTRICAS Y RECORDATORIOS CRÍTICOS */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -187,23 +234,40 @@ const tarjeta = db.tarjetas.length > 0
           </div>
         </div>
 
-        {/* Gráfica de Hobbies */}
-        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl">
-          <h3 className="text-lg font-bold mb-6 text-gray-300">Inversión en Disciplina (hrs)</h3>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={db.hobbies}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                <XAxis dataKey="nombre" stroke="#444" fontSize={10} />
-                <YAxis stroke="#444" fontSize={10} />
-                <Tooltip cursor={{fill: '#222'}} contentStyle={{backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px'}} />
-                <Bar dataKey="horasInvertidas" radius={[5, 5, 0, 0]}>
-                  {db.hobbies.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#a855f7' : '#3b82f6'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Estadísticas del Tridente (Reemplaza a la gráfica de Hobbies) */}
+        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold text-gray-300 uppercase tracking-wider">Inversión en Disciplina</h3>
+            {/* Pequeño badge para mostrar qué filtro está activo */}
+            <span className="text-xs font-mono text-purple-400 bg-purple-900/30 px-2 py-1 rounded border border-purple-800">
+              {filtroTiempo.toUpperCase()}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-full">
+            {/* Fe */}
+            <div className="bg-gray-800/50 border border-blue-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group transition-colors hover:border-blue-500">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+              <span className="text-2xl mb-1">🕊️</span>
+              <span className="text-4xl font-black text-blue-400 font-mono">{stats.fe}</span>
+              <span className="text-[10px] text-gray-500 uppercase mt-1 font-bold">Registros</span>
+            </div>
+
+            {/* Cuerpo */}
+            <div className="bg-gray-800/50 border border-green-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group transition-colors hover:border-green-500">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full blur-xl group-hover:bg-green-500/20 transition-all"></div>
+              <span className="text-2xl mb-1">🏋️‍♂️</span>
+              <span className="text-4xl font-black text-green-400 font-mono">{stats.cuerpo}</span>
+              <span className="text-[10px] text-gray-500 uppercase mt-1 font-bold">Sesiones</span>
+            </div>
+
+            {/* Mente */}
+            <div className="bg-gray-800/50 border border-purple-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group transition-colors hover:border-purple-500">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all"></div>
+              <span className="text-2xl mb-1">🧠</span>
+              <span className="text-4xl font-black text-purple-400 font-mono">{stats.mente}</span>
+              <span className="text-[10px] text-gray-500 uppercase mt-1 font-bold">Escritos</span>
+            </div>
           </div>
         </div>
       </div>
