@@ -82,6 +82,34 @@ export default function Dashboard() {
     };
   }, [db, filtroTiempo]);
 
+// 1. Calculamos el versículo de forma inteligente sin usar estados extra
+  const versiculoDelDia = useMemo(() => {
+    if (db.fe.length === 0) return null;
+    
+    const hoy = new Date().toLocaleDateString();
+    const fechaGuardada = localStorage.getItem('fechaVersiculo');
+    const versiculoGuardado = localStorage.getItem('versiculoDia');
+
+    // Si ya tenemos uno guardado de hoy, lo devolvemos directamente
+    if (versiculoGuardado && fechaGuardada === hoy) {
+      return JSON.parse(versiculoGuardado);
+    }
+
+    // Si es un día nuevo, hacemos la matemática
+    const diaDelAnio = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+    const indice = diaDelAnio % db.fe.length;
+    return db.fe[indice];
+  }, [db.fe]); // Solo se recalcula si db.fe cambia
+
+  // 2. Este efecto SOLO guarda en memoria, sin alterar los estados de React
+  useEffect(() => {
+    if (versiculoDelDia) {
+      const hoy = new Date().toLocaleDateString();
+      localStorage.setItem('versiculoDia', JSON.stringify(versiculoDelDia));
+      localStorage.setItem('fechaVersiculo', hoy);
+    }
+  }, [versiculoDelDia]);
+
 
   // Función para filtrar por tiempo
   const obtenerConteoFiltrado = (lista, campoFecha) => {
@@ -112,16 +140,7 @@ const tarjeta = db.tarjetas.length > 0
 
  const fmt = (num) => (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const getVersiculoDelDia = () => {
-  // Ahora apuntamos a db.fe en lugar de la variable suelta
-  if (db.fe.length === 0) return null; 
-  
-  const hoy = new Date();
-  const diaDelAnio = Math.floor((hoy - new Date(hoy.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-  
-  const indice = diaDelAnio % db.fe.length;
-  return db.fe[indice]; // Retornamos desde tu nuevo estado centralizado
-};
+
 
   if (cargando) return <div className="p-8 text-purple-500 animate-pulse font-bold">Sincronizando Sistema de Control...</div>;
 
@@ -138,13 +157,13 @@ const getVersiculoDelDia = () => {
         </div>
 
         {/* 2. SECCIÓN CENTRAL: Versículo del día (Compacto) */}
-        {getVersiculoDelDia() && (
+        {versiculoDelDia && (
           <div className="flex-1 max-w-lg bg-gray-900/40 border border-purple-500/20 rounded-md p-2 hidden md:block shadow-sm">
             <p className="text-gray-300 italic text-xs text-center line-clamp-2">
-              "{getVersiculoDelDia().texto}"
+              "{versiculoDelDia.texto}"
             </p>
             <p className="text-blue-400 font-bold text-[10px] text-right mt-1">
-              {getVersiculoDelDia().referencia}
+              {versiculoDelDia.referencia}
             </p>
           </div>
         )}
