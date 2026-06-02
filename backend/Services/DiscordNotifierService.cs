@@ -29,22 +29,42 @@ public class DiscordNotifierService : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                // Buscamos tareas que NO estén terminadas (Estado != 2) y que sean CRÍTICAS (Prioridad == 2)
-                var tareasCriticas = await db.Recordatorios
-                    .Where(r => r.Estado != 2 && r.NivelPrioridad == 2)
+                // 1. AHORA BUSCAMOS TODAS LAS TAREAS PENDIENTES (Sin importar prioridad)
+                var tareasPendientes = await db.Recordatorios
+                    .Where(r => r.Estado != 2)
                     .ToListAsync(stoppingToken);
 
-                if (tareasCriticas.Any())
+                if (tareasPendientes.Any())
                 {
                     var webhookUrl = _config["DiscordWebhookUrl"];
                     
                     if (!string.IsNullOrEmpty(webhookUrl))
                     {
-                        // Armamos el mensaje para Discord
-                        var mensaje = $"🚨 **¡Agh! ¡Despierta, baka-chan!** Tienes {tareasCriticas.Count} tarea(s) crítica(s) acumulando polvo. ¡Hazlas de una vez!\n";
-                        foreach (var tarea in tareasCriticas)
+                        // 2. Armamos el mensaje principal
+                        var mensaje = $"📢 **¡Atención, baka-chan!** Tienes {tareasPendientes.Count} tarea(s) pendiente(s). ¡Deja de holgazaneear y ponte a trabajar!\n\n";
+                        
+                        // 3. Iteramos sobre todas las tareas y personalizamos el texto
+                        foreach (var tarea in tareasPendientes)
                         {
-                            mensaje += $"- ⚠️ **{tarea.Titulo}** (ID: {tarea.Id})\n";
+                            // Etiqueta de Prioridad
+                            string iconoPrioridad = tarea.NivelPrioridad switch
+                            {
+                                2 => "🚨 **[CRÍTICA]**",
+                                1 => "⚠️ **[MEDIA]**",
+                                _ => "☕ **[BAJA]**" // 0 o cualquier otro valor
+                            };
+
+                            // Etiqueta de Diario
+                            string etiquetaDiaria = tarea.EsDiario ? " 🔁 *(Hábito Diario)*" : "";
+
+                            // Control de descripción (por si te dio pereza escribir una)
+                            string descripcion = string.IsNullOrWhiteSpace(tarea.Descripcion) 
+                                ? "Sin detalles adicionales." 
+                                : tarea.Descripcion;
+
+                            // 4. Construimos la línea de la tarea (Sin ID, con descripción y tipo)
+                            mensaje += $"{iconoPrioridad} **{tarea.Titulo}**{etiquetaDiaria}\n";
+                            mensaje += $"      └ 📝 *{descripcion}*\n\n";
                         }
 
                         var payload = new { content = mensaje };
@@ -60,10 +80,6 @@ public class DiscordNotifierService : BackgroundService
             {
                 Console.WriteLine($"Error en el Vigía de Discord: {ex.Message}");
             }
-
-            // Esperar antes de volver a revisar. 
-            // AHORA ESTÁ EN 1 MINUTO PARA QUE PUEDAS PROBARLO. 
-            // Cuando veas que funciona, cámbialo a TimeSpan.FromHours(1)
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }

@@ -4,8 +4,8 @@ export default function Recordatorios() {
   const [recordatorios, setRecordatorios] = useState([]);
   const [cargando, setCargando] = useState(true);
   
-  // Estado para el formulario de nueva tarea
-  const [nuevo, setNuevo] = useState({ titulo: "", descripcion: "", nivelPrioridad: 0, diasDeVida: 0 });
+// Estado para el formulario de nueva tarea
+  const [nuevo, setNuevo] = useState({ titulo: "", descripcion: "", nivelPrioridad: 0, diasDeVida: 0, esDiario: false });
 
   const PUERTO = "5240";
 
@@ -68,8 +68,9 @@ export default function Recordatorios() {
       titulo: nuevo.titulo,
       descripcion: nuevo.descripcion,
       nivelPrioridad: parseInt(nuevo.nivelPrioridad),
-      diasDeVida: nuevo.diasDeVida,
-      estado: 0 
+      diasDeVida: parseInt(nuevo.diasDeVida), // <- Ojo, le puse parseInt por seguridad
+      estado: 0,
+      esDiario: nuevo.esDiario // <- ESTO ES NUEVO
     };
 
     fetch(`http://localhost:${PUERTO}/api/recordatorios`, {
@@ -79,7 +80,7 @@ export default function Recordatorios() {
     })
     .then(res => res.json())
     .then(() => {
-      setNuevo({ titulo: "", descripcion: "", nivelPrioridad: 0, diasDeVida: 0 });
+      setNuevo({ titulo: "", descripcion: "", nivelPrioridad: 0, diasDeVida: 0, esDiario: false });
       cargarTareas();
     })
     .catch(err => console.error("Error al inyectar recordatorio:", err));
@@ -132,7 +133,9 @@ export default function Recordatorios() {
       </header>
 
       {/* FORMULARIO DE CREACIÓN */}
-      <form onSubmit={crearTarea} className="bg-gray-900 border border-gray-800 p-5 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-lg">
+      <form onSubmit={crearTarea} className="bg-gray-900 border border-gray-800 p-5 rounded-xl grid grid-cols-1 md:grid-cols-5 gap-4 items-end shadow-lg">
+        
+        {/* ... los 4 inputs que ya tenías (Título, Descripción, Prioridad, Tiempo de vida) van aquí idénticos ... */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] uppercase font-bold text-gray-400 font-mono tracking-widest">Título de la misión</label>
           <input type="text" value={nuevo.titulo} onChange={e => setNuevo({...nuevo, titulo: e.target.value})} placeholder="Ej: Validar tokens Core 64" className="bg-[#0a0a0c] border border-gray-700 rounded p-2 text-sm outline-none focus:border-purple-500 transition-colors" />
@@ -157,11 +160,19 @@ export default function Recordatorios() {
                 <option value={7}>1 Semana (Proyecto)</option>
             </select>
         </div>
-        <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all font-mono uppercase text-sm h-[38px]">
-          ➕ Desplegar
-        </button>
-      </form>
 
+        {/* COLUMNA 5 NUEVA: Checkbox y Botón */}
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 cursor-pointer border border-gray-700 bg-[#0a0a0c] p-1.5 rounded transition-colors hover:border-purple-500">
+             <input type="checkbox" checked={nuevo.esDiario} onChange={e => setNuevo({...nuevo, esDiario: e.target.checked})} className="accent-purple-500 w-3 h-3" />
+             <span className="text-[10px] text-gray-400 font-mono uppercase font-bold tracking-wider">Hábito Diario 🔁</span>
+          </label>
+          <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-4 rounded shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all font-mono uppercase text-[11px] h-[32px] w-full">
+            ➕ Desplegar
+          </button>
+        </div>
+
+      </form>
       {/* EL TABLERO KANBAN */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {columnas.map(col => {
@@ -186,7 +197,10 @@ export default function Recordatorios() {
                     <div className={`absolute left-0 top-0 h-full w-1 ${tarea.nivelPrioridad === 2 ? 'bg-red-500' : tarea.nivelPrioridad === 1 ? 'bg-orange-500' : 'bg-gray-700'}`}></div>
 
                     <div className="flex justify-between items-start gap-2 pl-1">
-                      <h4 className="font-bold text-sm text-gray-200 tracking-wide">{tarea.titulo}</h4>
+                      <h4 className="font-bold text-sm text-gray-200 tracking-wide flex items-center gap-1">
+                        {tarea.titulo}
+                        {tarea.esDiario && <span className="text-purple-400 text-xs" title="Hábito Recurrente Diario">🔁</span>}
+                        </h4>
                       <button onClick={() => eliminarTarea(tarea.id)} className="text-gray-600 hover:text-red-400 text-xs font-bold transition-colors opacity-0 group-hover:opacity-100 font-mono px-1">
                         ✕
                       </button>

@@ -117,7 +117,34 @@ app.MapPost("/api/tarjetas/{id}/pagar", async (int id, Abono nuevoAbono, AppDbCo
 
 // --- RECORDATORIOS (KANBAN) ---
 app.MapGet("/api/recordatorios", async (AppDbContext db) =>
-    Results.Ok(await db.Recordatorios.ToListAsync()));
+{
+    // Obtenemos solo la fecha de hoy (sin horas ni minutos)
+    var hoy = DateTime.Now.Date; 
+    var recordatorios = await db.Recordatorios.ToListAsync();
+    bool huboCambios = false;
+
+    // Revisamos si algún hábito diario necesita reiniciarse
+    foreach (var rec in recordatorios)
+    {
+        if (rec.EsDiario && rec.Estado == 2)
+        {
+            // Si no tiene fecha, o la fecha es anterior a hoy, lo reiniciamos
+            if (!rec.UltimaVezCompletado.HasValue || rec.UltimaVezCompletado.Value.Date < hoy)
+            {
+                rec.Estado = 0; // Lo devolvemos a "Pendiente"
+                huboCambios = true;
+            }
+        }
+    }
+
+    // Si el servidor movió tarjetas por ti, guardamos los cambios en la BD
+    if (huboCambios)
+    {
+        await db.SaveChangesAsync();
+    }
+
+    return Results.Ok(recordatorios);
+});
 
 app.MapPost("/api/recordatorios", async (Recordatorio nuevo, AppDbContext db) =>
 {
@@ -132,6 +159,13 @@ app.MapPut("/api/recordatorios/{id}/mover", async (int id, Recordatorio updatePa
     if (rec == null) return Results.NotFound();
 
     rec.Estado = updateParams.Estado;
+
+    // LÓGICA NUEVA: Si lo acabas de terminar, sellamos la fecha de hoy
+    if (rec.Estado == 2)
+    {
+        rec.UltimaVezCompletado = DateTime.Now;
+    }
+
     await db.SaveChangesAsync();
     return Results.Ok(rec);
 });
