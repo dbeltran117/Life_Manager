@@ -18,5 +18,6 @@ namespace backend.Data
         public DbSet<Versiculo> Versiculos { get; set; }
         public DbSet<RegistroFisico> RegistrosFisicos { get; set; }
         public DbSet<EscritoMente> EscritosMente { get; set; }
+        public DbSet<IdeaSandbox> Sandbox { get; set; }
     }
 }

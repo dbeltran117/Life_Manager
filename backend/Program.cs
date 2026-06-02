@@ -352,6 +352,74 @@ app.MapDelete("/api/mente/{id}", async (int id, AppDbContext db) =>
     return Results.Ok();
 });
 
+// ==========================================
+// 💡 MÓDULO: SANDBOX DE IDEAS
+// ==========================================
+
+// GET: Obtener todas las ideas del caos mental
+app.MapGet("/api/sandbox", async (AppDbContext db) =>
+{
+    // Ordenamos para que las nuevas (Estado 0) salgan primero
+    return await db.Sandbox.OrderBy(i => i.EstadoEvaluacion).ThenByDescending(i => i.FechaCreacion).ToListAsync();
+});
+
+// POST: Aventar una idea rápida al sistema
+app.MapPost("/api/sandbox", async (IdeaSandbox idea, AppDbContext db) =>
+{
+    idea.FechaCreacion = DateTime.Now;
+    idea.EstadoEvaluacion = 0; // Siempre entran como "Nueva"
+    
+    db.Sandbox.Add(idea);
+    await db.SaveChangesAsync();
+    
+    return Results.Created($"/api/sandbox/{idea.Id}", idea);
+});
+
+// PUT: Evaluar la idea (AQUÍ ESTÁ TU LÓGICA DE INGENIERO)
+app.MapPut("/api/sandbox/{id}/evaluar", async (int id, IdeaSandbox updateParams, AppDbContext db) =>
+{
+    var idea = await db.Sandbox.FindAsync(id);
+    if (idea == null) return Results.NotFound();
+
+    // Si la estamos marcando como "Buena Idea" (1) y no lo era antes
+    if (updateParams.EstadoEvaluacion == 1 && idea.EstadoEvaluacion != 1)
+    {
+        // AUTOMATIZACIÓN: Creamos el recordatorio
+        var nuevoRecordatorio = new Recordatorio
+        {
+            Titulo = $"💡 [IDEA] {idea.Titulo}",
+            Descripcion = idea.Descripcion,
+            NivelPrioridad = 1, // 1 = Media
+            DiasDeVida = 0, // 0 = Permanente
+            Estado = 0, // 0 = Pendiente en Kanban
+            EsDiario = false,
+            FechaCreacion = DateTime.Now
+        };
+        
+        // Lo inyectamos en la tabla del Kanban
+        db.Recordatorios.Add(nuevoRecordatorio);
+    }
+
+    // Actualizamos el estado de la idea (Ej. a Aprobada, Rechazada, etc.)
+    idea.EstadoEvaluacion = updateParams.EstadoEvaluacion;
+    
+    // Guardamos ambos cambios en una sola transacción
+    await db.SaveChangesAsync();
+    return Results.Ok(idea);
+});
+
+// DELETE: Por si escribiste una tontería y quieres borrarla
+app.MapDelete("/api/sandbox/{id}", async (int id, AppDbContext db) =>
+{
+    var idea = await db.Sandbox.FindAsync(id);
+    if (idea == null) return Results.NotFound();
+
+    db.Sandbox.Remove(idea);
+    await db.SaveChangesAsync();
+    
+    return Results.NoContent();
+});
+
 app.Run();
 
 // Clases auxiliares

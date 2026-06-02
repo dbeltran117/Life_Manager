@@ -7,6 +7,7 @@ import Fe from './views/Fe';
 import Tridente from './views/Tridente'; 
 import Cuerpo from './views/Cuerpo';
 import Mente from './views/Mente';
+import Sandbox from './views/SandBox';
 
 function Sidebar() {
   return (
@@ -32,6 +33,9 @@ function Sidebar() {
         <Link to="/tridente" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
           🔱 Tridente
         </Link>
+        <Link to= "/Sandbox" className="text-gray-300 hover:text-purple-400 hover:bg-gray-800 p-2 rounded transition-colors font-semibold">
+          🧪 Sandbox
+        </Link>
       </nav>
     </aside>
   );
@@ -52,6 +56,7 @@ function App() {
             <Route path="/fe" element={<Fe />} />
             <Route path="/cuerpo" element={<Cuerpo />} />
             <Route path="/mente" element={<Mente />} />
+            <Route path="/sandbox" element={<Sandbox />} />
           </Routes>
         </main>
 
