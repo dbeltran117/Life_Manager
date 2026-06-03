@@ -85,12 +85,15 @@ export default function Sandbox() {
         <p className="text-gray-500 text-sm mt-1 font-mono">El caos estructurado. Atrapa tus ideas antes de que escapen.</p>
       </header>
 
-      {/* FORMULARIO RÁPIDO (Caja de captura) */}
+      {/* FORMULARIO RÁPIDO (Caja de captura reestructurada) */}
       <form onSubmit={handleSubmit} className="bg-gray-900 border border-yellow-600/30 p-6 rounded-xl shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-          <div className="md:col-span-1 space-y-4">
+        {/* Contenedor de los inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          
+          {/* Columna Izquierda: Concepto y Categoría */}
+          <div className="md:col-span-1 flex flex-col space-y-4 justify-start">
             <div>
               <label className="text-xs uppercase font-bold text-gray-400 font-mono tracking-widest">Concepto</label>
               <input type="text" name="titulo" value={form.titulo} onChange={handleChange} placeholder="Ej: Módulo de Viajes" required 
@@ -108,17 +111,19 @@ export default function Sandbox() {
             </div>
           </div>
           
-          <div className="md:col-span-2">
+          {/* Columna Derecha: Área de texto */}
+          <div className="md:col-span-2 flex flex-col">
             <label className="text-xs uppercase font-bold text-gray-400 font-mono tracking-widest">Desarrollo de la idea</label>
-            <textarea name="descripcion" value={form.descripcion} onChange={handleChange} rows="4" placeholder="Volca el caos aquí..." 
-              className="w-full mt-1 bg-[#0a0a0c] border border-gray-700 rounded p-2 text-sm outline-none focus:border-yellow-500 transition-colors resize-none" />
+            <textarea name="descripcion" value={form.descripcion} onChange={handleChange} placeholder="Vuelca el caos aquí..." 
+              className="w-full mt-1 flex-1 bg-[#0a0a0c] border border-gray-700 rounded p-2 text-sm outline-none focus:border-yellow-500 transition-colors resize-none min-h-[110px]" />
           </div>
+        </div>
 
-          <div className="md:col-span-1 h-full flex items-end">
-            <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-gray-900 font-black py-3 px-4 rounded shadow-[0_0_15px_rgba(202,138,4,0.4)] transition-all font-mono uppercase text-sm">
-              💡 Atrapar Idea
-            </button>
-          </div>
+        {/* Fila Inferior: Botón de Acción a todo lo ancho */}
+        <div className="mt-6 border-t border-gray-800 pt-5">
+          <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-gray-900 font-black py-3 px-4 rounded shadow-[0_0_15px_rgba(202,138,4,0.3)] transition-all font-mono uppercase text-sm tracking-widest hover:shadow-[0_0_20px_rgba(202,138,4,0.5)]">
+            💡 Atrapar Idea
+          </button>
         </div>
       </form>
 
