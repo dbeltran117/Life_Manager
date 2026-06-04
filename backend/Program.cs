@@ -420,6 +420,54 @@ app.MapDelete("/api/sandbox/{id}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
+// ==========================================
+// 📓 MÓDULO: DIARIO PERSONAL
+// ==========================================
+
+// GET: Obtener todas las páginas del diario (ordenadas de la más reciente a la más antigua)
+app.MapGet("/api/diario", async (AppDbContext db) =>
+{
+    return await db.Diario.OrderByDescending(d => d.FechaHora).ToListAsync();
+});
+
+// POST: Escribir una nueva página
+app.MapPost("/api/diario", async (RegistroDiario pagina, AppDbContext db) =>
+{
+    // Forzamos la fecha y hora exacta del servidor en el momento de creación
+    pagina.FechaHora = DateTime.Now; 
+    
+    db.Diario.Add(pagina);
+    await db.SaveChangesAsync();
+    
+    return Results.Created($"/api/diario/{pagina.Id}", pagina);
+});
+
+// PUT: Editar una página existente (Por si el caos mental te hizo tener faltas de ortografía)
+app.MapPut("/api/diario/{id}", async (int id, RegistroDiario paginaActualizada, AppDbContext db) =>
+{
+    var pagina = await db.Diario.FindAsync(id);
+    if (pagina == null) return Results.NotFound();
+
+    // Solo actualizamos el texto y la emoción, la fecha original se respeta
+    pagina.EmocionPredominante = paginaActualizada.EmocionPredominante;
+    pagina.Contenido = paginaActualizada.Contenido;
+
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+// DELETE: Arrancar una página del diario
+app.MapDelete("/api/diario/{id}", async (int id, AppDbContext db) =>
+{
+    var pagina = await db.Diario.FindAsync(id);
+    if (pagina == null) return Results.NotFound();
+
+    db.Diario.Remove(pagina);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok();
+});
+
 app.Run();
 
 // Clases auxiliares
