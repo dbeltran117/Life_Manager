@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -10,9 +11,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608001547_SistemaLecturaYCitas")]
+    partial class SistemaLecturaYCitas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
@@ -49,6 +52,9 @@ namespace backend.Migrations
                     b.Property<int>("LibroId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("LibroTrackerId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("Pagina")
                         .HasColumnType("INTEGER");
 
@@ -62,7 +68,7 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LibroId");
+                    b.HasIndex("LibroTrackerId");
 
                     b.ToTable("CitasLibros");
                 });
@@ -377,13 +383,9 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.CitaLibro", b =>
                 {
-                    b.HasOne("backend.Models.LibroTracker", "Libro")
+                    b.HasOne("backend.Models.LibroTracker", null)
                         .WithMany("Citas")
-                        .HasForeignKey("LibroId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Libro");
+                        .HasForeignKey("LibroTrackerId");
                 });
 
             modelBuilder.Entity("backend.Models.LibroTracker", b =>

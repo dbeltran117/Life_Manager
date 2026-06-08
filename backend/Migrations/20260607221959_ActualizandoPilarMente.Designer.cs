@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Data;
 
@@ -10,9 +11,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260607221959_ActualizandoPilarMente")]
+    partial class ActualizandoPilarMente
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
@@ -35,36 +38,6 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Abonos");
-                });
-
-            modelBuilder.Entity("backend.Models.CitaLibro", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("LibroId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Pagina")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReflexionPersonal")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TextoOriginal")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LibroId");
-
-                    b.ToTable("CitasLibros");
                 });
 
             modelBuilder.Entity("backend.Models.EscritoMente", b =>
@@ -203,34 +176,6 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Ingresos");
-                });
-
-            modelBuilder.Entity("backend.Models.LibroTracker", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Autor")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("EstadoLectura")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("FechaFin")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("FechaInicio")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Titulo")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Libros");
                 });
 
             modelBuilder.Entity("backend.Models.Recordatorio", b =>
@@ -373,22 +318,6 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Versiculos");
-                });
-
-            modelBuilder.Entity("backend.Models.CitaLibro", b =>
-                {
-                    b.HasOne("backend.Models.LibroTracker", "Libro")
-                        .WithMany("Citas")
-                        .HasForeignKey("LibroId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Libro");
-                });
-
-            modelBuilder.Entity("backend.Models.LibroTracker", b =>
-                {
-                    b.Navigation("Citas");
                 });
 #pragma warning restore 612, 618
         }

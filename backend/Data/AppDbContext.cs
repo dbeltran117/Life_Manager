@@ -20,5 +20,7 @@ namespace backend.Data
         public DbSet<EscritoMente> EscritosMente { get; set; }
         public DbSet<IdeaSandbox> Sandbox { get; set; }
         public DbSet<RegistroDiario> Diario { get; set; }
+        public DbSet<LibroTracker> Libros { get; set; }
+        public DbSet<CitaLibro> CitasLibros { get; set; }
     }
 }

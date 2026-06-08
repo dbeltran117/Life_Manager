@@ -30,12 +30,19 @@ public class RegistroFisico
 // 3. Pilar de la Mente: Intelecto y Escritura
 public class EscritoMente
 {
-    public int Id { get; set; }
-    public string Titulo { get; set; } = string.Empty;
-    
-    public string Tipo { get; set; } = "Reflexión"; // Ej: Poesía, Capítulo de Libro, Idea suelta
-    public string Contenido { get; set; } = string.Empty; 
-    
-    public DateTime FechaCreacion { get; set; } = DateTime.Now;
-    public DateTime FechaModificacion { get; set; } = DateTime.Now;
+        public int Id { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        
+        public string Tipo { get; set; } = "Reflexión"; // Ej: Poesía, Capítulo de Libro, Idea suelta
+        
+        // ¡NUEVA! Para el orden de tus ideas
+        public string CategoriaTema { get; set; } = "General"; // Ej: Amor, Disciplina, Filosofía
+        
+        public string Contenido { get; set; } = string.Empty; 
+        
+        // ¡NUEVA! Para los archivos físicos
+        public string RutaArchivoFisico { get; set; } = string.Empty; 
+        
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaModificacion { get; set; } = DateTime.Now;
 }

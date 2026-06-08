@@ -1,8 +1,11 @@
+using Microsoft.Extensions.FileProviders;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +30,15 @@ builder.Services.AddHostedService<backend.Services.DiscordNotifierService>();
 builder.Services.AddHttpClient(); // Permiso para que C# hable con Gemini
 
 var app = builder.Build();
+
+app.UseStaticFiles(); 
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "ArchivosMente")),
+    RequestPath = "/ArchivosMente"
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -180,6 +192,18 @@ app.MapDelete("/api/recordatorios/{id}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
+app.MapPut("/api/recordatorios/{id}/toggle-diario", async (int id, AppDbContext db) =>
+{
+    var rec = await db.Recordatorios.FindAsync(id);
+    if (rec == null) return Results.NotFound();
+
+    // Invierte el valor booleano (si era true pasa a false, y viceversa)
+    rec.EsDiario = !rec.EsDiario; 
+    
+    await db.SaveChangesAsync();
+    return Results.Ok(rec);
+});
+
 app.MapPost("/api/chat", async (ConsultaFinanciera req, AppDbContext db, HttpClient httpClient, IConfiguration config) =>
 {
     var totalIngresos = await db.Ingresos.SumAsync(i => i.Monto);
@@ -310,34 +334,75 @@ app.MapGet("/api/mente", async (AppDbContext db) =>
     return await db.EscritosMente.OrderByDescending(m => m.FechaModificacion).ToListAsync();
 });
 
-// POST: Crear un nuevo escrito
-app.MapPost("/api/mente", async (EscritoMente escrito, AppDbContext db) =>
+// POST: Crear un nuevo escrito (Soporta texto directo o archivos físicos)
+app.MapPost("/api/mente", async (
+    [FromForm] string titulo,
+    [FromForm] string tipo,
+    [FromForm] string categoriaTema,
+    [FromForm] string? contenido,
+    IFormFile? archivoFisico, // Opcional, por si solo quieres escribir texto plano
+    AppDbContext db) =>
 {
-    escrito.FechaCreacion = DateTime.Now;
-    escrito.FechaModificacion = DateTime.Now;
-    
-    db.EscritosMente.Add(escrito);
+    string rutaFinal = "";
+
+    // Si decidiste adjuntar un archivo físico (PDF, TXT, etc.)
+    if (archivoFisico != null && archivoFisico.Length > 0)
+    {
+        // Creamos la carpeta en la raíz del backend si no existe
+        var carpetaDestino = Path.Combine(Directory.GetCurrentDirectory(), "ArchivosMente");
+        if (!Directory.Exists(carpetaDestino)) 
+        {
+            Directory.CreateDirectory(carpetaDestino);
+        }
+
+        // Renombramos con un GUID para evitar colisiones de archivos con el mismo nombre
+        var nombreUnico = Guid.NewGuid().ToString() + "_" + archivoFisico.FileName;
+        var rutaCompleta = Path.Combine(carpetaDestino, nombreUnico);
+
+        // Guardamos el flujo del archivo en el disco
+        using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+        {
+            await archivoFisico.CopyToAsync(stream);
+        }
+
+        // Guardamos la ruta que usará el frontend para descargarlo
+        rutaFinal = $"/ArchivosMente/{nombreUnico}";
+    }
+
+    var nuevoEscrito = new EscritoMente
+    {
+        Titulo = titulo,
+        Tipo = tipo,
+        CategoriaTema = categoriaTema,
+        Contenido = contenido ?? "", 
+        RutaArchivoFisico = rutaFinal,
+        FechaCreacion = DateTime.Now,
+        FechaModificacion = DateTime.Now
+    };
+
+    db.EscritosMente.Add(nuevoEscrito);
     await db.SaveChangesAsync();
     
-    return Results.Created($"/api/mente/{escrito.Id}", escrito);
-});
+    return Results.Created($"/api/mente/{nuevoEscrito.Id}", nuevoEscrito);
+}).DisableAntiforgery(); // Crucial para que React pueda enviar formularios multipart sin bloqueos
 
-// PUT: Actualizar/Editar un texto existente (Exclusivo de este módulo)
+// PUT: Actualizar/Editar un texto existente
 app.MapPut("/api/mente/{id}", async (int id, EscritoMente escritoActualizado, AppDbContext db) =>
 {
     var escrito = await db.EscritosMente.FindAsync(id);
     if (escrito is null) return Results.NotFound();
 
-    // Actualizamos solo los campos que importan
+    // Actualizamos los campos de texto y la nueva categoría
     escrito.Titulo = escritoActualizado.Titulo;
     escrito.Tipo = escritoActualizado.Tipo;
+    escrito.CategoriaTema = escritoActualizado.CategoriaTema; // ¡NUEVO CAMBIO!
     escrito.Contenido = escritoActualizado.Contenido;
     
-    // El toque técnico: actualizamos la fecha de modificación automáticamente
+    // Forzamos la actualización de la estampa de tiempo
     escrito.FechaModificacion = DateTime.Now; 
 
     await db.SaveChangesAsync();
-    return Results.NoContent(); // Código 204: Éxito sin devolver contenido extra
+    return Results.NoContent();
 });
 
 // DELETE: Eliminar un escrito permanentemente
@@ -463,6 +528,88 @@ app.MapDelete("/api/diario/{id}", async (int id, AppDbContext db) =>
     if (pagina == null) return Results.NotFound();
 
     db.Diario.Remove(pagina);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok();
+});
+
+// ==========================================
+// 📚 MÓDULO: BIBLIOTECA Y CITAS (LibroTracker)
+// ==========================================
+
+// GET: Obtener todos los libros (¡Con sus citas incluidas!)
+app.MapGet("/api/libros", async (AppDbContext db) =>
+{
+    // IMPORTANTE: Requiere "using Microsoft.EntityFrameworkCore;" arriba en tu archivo
+    return await db.Libros
+                   .Include(l => l.Citas) // Hacemos el JOIN automático
+                   .OrderByDescending(l => l.Id)
+                   .ToListAsync();
+});
+
+// POST: Registrar un nuevo libro en los casilleros (Corregido)
+app.MapPost("/api/libros", async (LibroTracker libro, AppDbContext db) =>
+{
+    // EL TOQUE TÉCNICO: Si el baka-chan inicia el libro directamente en estado 1 (Leyendo)
+    // sellamos la estampa de tiempo de inicio inmediatamente de forma nativa.
+    if (libro.EstadoLectura == 1)
+    {
+        libro.FechaInicio = DateTime.Now;
+    }
+
+    db.Libros.Add(libro);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/libros/{libro.Id}", libro);
+});
+// PUT: Cambiar el estado de lectura de un libro
+app.MapPut("/api/libros/{id}/estado", async (int id, LibroTracker dataFront, AppDbContext db) =>
+{
+    var libro = await db.Libros.FindAsync(id);
+    if (libro is null) return Results.NotFound();
+
+    libro.EstadoLectura = dataFront.EstadoLectura;
+
+    // Lógica automática: Control de tiempos
+    if (libro.EstadoLectura == 1 && libro.FechaInicio == null) 
+    {
+        // Si lo pasas a "Leyendo" y no tenía fecha, le ponemos la de hoy
+        libro.FechaInicio = DateTime.Now; 
+    }
+    else if (libro.EstadoLectura == 2) 
+    {
+        // Si lo pasas a "Terminado", sellamos la fecha final
+        libro.FechaFin = DateTime.Now; 
+    }
+
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+// POST: Guardar una nueva cita/reflexión dentro de un libro
+app.MapPost("/api/libros/{id}/citas", async (int id, CitaLibro cita, AppDbContext db) =>
+{
+    // Verificamos que el libro realmente exista antes de meterle citas
+    var libroExistente = await db.Libros.AnyAsync(l => l.Id == id);
+    if (!libroExistente) return Results.NotFound("El libro no existe.");
+
+    // Forzamos las llaves para que no haya errores
+    cita.LibroId = id;
+    cita.FechaCreacion = DateTime.Now;
+
+    db.CitasLibros.Add(cita);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/libros/{id}/citas/{cita.Id}", cita);
+});
+
+// DELETE: Eliminar un libro permanentemente junto con sus citas asociadas
+app.MapDelete("/api/libros/{id}", async (int id, AppDbContext db) =>
+{
+    // Buscamos el libro incluyendo sus citas para asegurar el rastreo completo
+    var libro = await db.Libros.Include(l => l.Citas).FirstOrDefaultAsync(l => l.Id == id);
+    if (libro is null) return Results.NotFound();
+
+    db.Libros.Remove(libro);
     await db.SaveChangesAsync();
     
     return Results.Ok();
